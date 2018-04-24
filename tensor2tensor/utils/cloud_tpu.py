@@ -49,7 +49,7 @@ class CloudState(object):
     self._tmp_dir = os.path.expanduser("~/.t2t/cloud_state")
     tf.gfile.MakeDirs(self._tmp_dir)
 
-  def cleanup(self, current_vm_name=None, current_tpu_name=None):
+  def cleanup(self, current_vm_name=None, current_tpu_name=None, prompt):
     process_pids = os.listdir(self._tmp_dir)
     for pid in process_pids:
       try:
@@ -111,13 +111,14 @@ class CloudState(object):
 
 
 @contextlib.contextmanager
-def cloud_tpu(vm_name, tpu_name, delete_on_done=False):
+def cloud_tpu(vm_name, tpu_name, delete_on_done=False, interactive=True):
   """Gets or creates a VM and TPU instance, and forwards ports.
 
   Args:
     vm_name: str, name of VM.
     tpu_name: str, name of TPU instance.
     delete_on_done: bool, whether to delete the instances when done.
+    interactive: prompt for TPU lifecycle managemnt
 
   Yields:
     master: str, grpc master pointing to the TPU instance.
@@ -128,7 +129,8 @@ def cloud_tpu(vm_name, tpu_name, delete_on_done=False):
 
   done_str = "" if delete_on_done else "NOT "
   print("Will %sdelete VM and TPU instance on done." % done_str)
-  assert confirm()
+  if delete_on_done:
+    assert confirm()
   _, tpu_ip = create_vm_tpu_pair(vm_name, tpu_name)
   with tpu_tunnel(vm_name, tpu_ip) as (local_ports, tunnel_pid):
     master = "grpc://localhost:%d" % local_ports["tpu"]
